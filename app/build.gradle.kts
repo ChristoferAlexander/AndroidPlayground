@@ -2,9 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlinx.serialization)
+    id("kotlin-parcelize")
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
-    kotlin("plugin.serialization") version "2.1.10"
 }
 
 android {
@@ -50,6 +51,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlin.reflect)
+    implementation(libs.play.services.location)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -77,11 +80,9 @@ dependencies {
     androidTestImplementation(libs.dagger.hilt.android.testing)
     kaptAndroidTest(libs.hilt.android.compiler)
     androidTestAnnotationProcessor(libs.hilt.android.compiler)
-
     // Coil
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
-
     // Utils
     implementation(libs.kotlinx.collections.immutable)
     implementation(libs.kotlinx.serialization.json)

@@ -5,7 +5,7 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class DailyWeather(
-    val date: String,       // Single date
+    val date: String,
     val temperatureMax: Double,  // Max temperature
     val temperatureMin: Double,  // Min temperature
     val precipitation: Double,   // Precipitation in mm

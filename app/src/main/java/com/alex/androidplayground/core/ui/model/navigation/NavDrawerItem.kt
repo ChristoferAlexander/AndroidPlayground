@@ -7,7 +7,8 @@ enum class NavDrawerItem(val text: String, val destination: NavDestinationItem) 
     FILE_SELECTOR("Files", FileSelectorDest),
     FOREGROUND_SERVICE("ForegroundService", ForegroundServiceDest),
     WORK_MANAGER("WorkManager", WorkManagerDest),
-    WEATHER("Weather", WeatherDest);
+    WEATHER("Weather", WeatherDest),
+    BREWERY("Brewery", BreweriesListDest);
 }
 
 fun getNavDrawerItems(): PersistentList<NavDrawerItem> {

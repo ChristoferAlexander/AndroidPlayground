@@ -18,3 +18,12 @@ data object WorkManagerDest : NavDestinationItem()
 
 @Serializable
 data object  WeatherDest : NavDestinationItem()
+
+@Serializable
+data object  BreweriesNestedNavDest : NavDestinationItem()
+
+@Serializable
+data object  BreweriesListDest : NavDestinationItem()
+
+@Serializable
+data class BreweryDetailsDest(val breweryId: String) : NavDestinationItem()

@@ -4,6 +4,6 @@ import com.alex.androidplayground.weatherScreen.domain.model.CurrentWeather
 import com.alex.androidplayground.weatherScreen.domain.model.WeaklyForecast
 
 data class WeatherResponse(
-    val current_weather: CurrentWeather?,
-    val daily: WeaklyForecast?  // Nullable to support both current weather & forecast
+    val current_weather: CurrentWeather? = null,
+    val daily: WeaklyForecast? = null
 )

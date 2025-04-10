@@ -1,133 +1,157 @@
 package com.alex.androidplayground.weatherScreen.ui.state
 
-
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.alex.androidplayground.core.utils.result.Result
+import com.alex.androidplayground.core.model.result.Result
+import com.alex.androidplayground.core.ui.state.BaseViewModel
+import com.alex.androidplayground.core.utils.coroutines.DispatcherProvider
+import com.alex.androidplayground.core.utils.location.LocationService
+import com.alex.androidplayground.core.utils.location.validateLatLong
+import com.alex.androidplayground.core.utils.location.validateLatitude
+import com.alex.androidplayground.core.utils.location.validateLongitude
 import com.alex.androidplayground.weatherScreen.domain.repository.WeatherRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    private val service: WeatherRepository
-) : ViewModel() {
+    private val service: WeatherRepository,
+    private val locationService: LocationService,
+    private val dispatcherProvider: DispatcherProvider
+) : BaseViewModel<WeatherScreenState, WeatherScreenAction, WeatherScreenEvent>(
+    initialState = {
+        val state = savedStateHandle.get<WeatherScreenState>(STATE_KEY)
+        state ?: WeatherScreenState("0", "0")
+    }
+) {
 
     companion object {
-        private const val LAT_KEY = "latitude"
-        private const val LONG_KEY = "longitude"
         private const val STATE_KEY = "weather_state"
     }
 
-    private val _state: MutableStateFlow<WeatherMviState> =
-        MutableStateFlow(restoreState())
-    val state = _state.asStateFlow()
-
-    private val _events = Channel<WeatherEvents>()
-    val events = _events.receiveAsFlow()
-
-    private val _lat = MutableStateFlow(savedStateHandle.get<String>(LAT_KEY) ?: "")
-    val lat = _lat.asStateFlow()
-
-    private val _long = MutableStateFlow(savedStateHandle.get<String>(LONG_KEY) ?: "")
-    val long = _long.asStateFlow()
-
     init {
         viewModelScope.launch {
-            _state.collect { state ->
-                saveState(state)
-            }
+            launch { saveStateCollector() }
+            launch { autoLocationCollector() }
         }
     }
 
-    fun onAction(action: WeatherMviAction) {
+    override fun onAction(action: WeatherScreenAction) {
         when (action) {
-            is WeatherMviAction.FetchWeather, is WeatherMviAction.RetryFetchData -> {
-                if (validateLatLong(_lat.value, _long.value)) {
-                    fetchWeatherData(_lat.value, _long.value)
-                } else {
-                    displayLatLongError()
-                }
+            is WeatherScreenAction.UpdateLatLong -> updateLatLong(action.lat, action.long)
+            is WeatherScreenAction.ToggleAutoLocation -> toggleAutoLocation()
+            is WeatherScreenAction.ShowPermissionsRationale -> setPermissionsRationaleDialogVisibility(true)
+            WeatherScreenAction.HidePermissionsRationale -> setPermissionsRationaleDialogVisibility(false)
+            is WeatherScreenAction.FetchWeatherScreen,
+            is WeatherScreenAction.RetryFetchData -> viewModelScope.launch {
+                fetchWeatherData(state.value.lat, state.value.long)
             }
-
-            is WeatherMviAction.UpdateLatLong -> updateLatLongState(action.lat, action.long)
-            WeatherMviAction.InvalidLatLong -> displayLatLongError()
         }
     }
 
-    private fun fetchWeatherData(latitude: String, longitude: String) {
-        suspend fun switchToErrorState(error: String) {
-            _state.update { WeatherMviState.Error }
-            _events.send(WeatherEvents.DisplayErrorToast(error))
-        }
-
-        viewModelScope.launch {
-            _state.update {
-                WeatherMviState.Loading
-            }
-            coroutineScope {
-                val currentWeatherDeferred = async { service.getCurrentWeather(latitude.toDouble(), longitude.toDouble()) }
-                val weeklyForecastDeferred = async { service.getWeeklyForecast(latitude.toDouble(), longitude.toDouble()) }
-
-                val currentWeather = currentWeatherDeferred.await()
-                val weeklyForecast = weeklyForecastDeferred.await()
-
-                ensureActive()
-
+    /**
+     *  Collects [WeatherScreenState.autoLocation]
+     *
+     * When [WeatherScreenState.autoLocation]:
+     *  - TRUE fetches weather data from location updates
+     *  - FALSE false does nothing
+     */
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+    private suspend fun autoLocationCollector() = withContext(dispatcherProvider.io) {
+        state
+            .distinctUntilChanged { old, new -> old.autoLocation == new.autoLocation }
+            .flatMapLatest { state ->
                 when {
-                    currentWeather is Result.Error -> switchToErrorState(currentWeather.error.toString())
-                    weeklyForecast is Result.Error -> switchToErrorState(weeklyForecast.error.toString())
-                    currentWeather is Result.Success && weeklyForecast is Result.Success -> {
-                        val newState = WeatherMviState.Weather(
-                            currentWeather = currentWeather.data.current_weather,
-                            weeklyForecast = weeklyForecast.data.daily?.toDailyWeatherList() ?: emptyList()
-                        )
-                        _state.update { newState }
-                        saveState(newState)
+                    state.autoLocation -> {
+                        setState { it.copy(isLoading = true) }
+                        locationService.getLocationUpdates(1000)
+                    }
+
+                    else -> {
+                        setState { it.copy(isLoading = false) }
+                        flowOf()
                     }
                 }
             }
+            .debounce(1000)
+            .collect { location ->
+                setState { it.copy(isLoading = false) }
+                when (location) {
+                    is Result.Error -> sendEvent(WeatherScreenEvent.DisplayErrorToast("${location.error}"))
+                    is Result.Success -> {
+                        val lat = location.data.latitude.toString()
+                        val long = location.data.longitude.toString()
+                        updateLatLong(lat = lat, long = long)
+                        fetchWeatherData(latitude = lat, longitude = long)
+                    }
+                }
+            }
+    }
+
+    private suspend fun fetchWeatherData(latitude: String, longitude: String) = withContext(dispatcherProvider.io) {
+        if (!validateLatLong(latitude, longitude)) {
+            setState { it.copy(currentWeather = null, weeklyForecast = emptyList()) }
+            sendEvent(WeatherScreenEvent.DisplayErrorToast("Lat must be in -90 to 90 and long in -180 to 180"))
+            return@withContext
+        }
+        val currentWeatherDeferred = async { service.getCurrentWeather(latitude.toFloat(), longitude.toFloat()) }
+        val weeklyForecastDeferred = async { service.getWeeklyForecast(latitude.toFloat(), longitude.toFloat()) }
+        val currentWeather = currentWeatherDeferred.await()
+        val weeklyForecast = weeklyForecastDeferred.await()
+        ensureActive()
+        when {
+            currentWeather is Result.Error -> sendEvent(WeatherScreenEvent.DisplayErrorToast(currentWeather.error.toString()))
+            weeklyForecast is Result.Error -> sendEvent(WeatherScreenEvent.DisplayErrorToast(weeklyForecast.error.toString()))
+            currentWeather is Result.Success && weeklyForecast is Result.Success -> {
+                setState {
+                    it.copy(
+                        currentWeather = currentWeather.data.current_weather,
+                        weeklyForecast = weeklyForecast.data.daily?.toDailyWeatherList() ?: emptyList()
+                    )
+                }
+            }
         }
     }
 
-    private fun updateLatLongState(lat: String, long: String) {
-        _lat.update { lat }
-        _long.update { long }
-        savedStateHandle[LAT_KEY] = lat
-        savedStateHandle[LONG_KEY] = long
-    }
-
-    private fun displayLatLongError() {
-        viewModelScope.launch {
-            _events.send(WeatherEvents.DisplayErrorToast("Latitude and Longitude cannot be empty"))
+    private fun updateLatLong(lat: String, long: String) {
+        val isLatValid = validateLatitude(lat)
+        val isLongValid = validateLongitude(long)
+        setState {
+            it.copy(
+                lat = lat,
+                long = long,
+                isLatValid = isLatValid,
+                isLongValid = isLongValid
+            )
         }
     }
 
-    private fun saveState(state: WeatherMviState) {
-        savedStateHandle[STATE_KEY] = state
+    private fun toggleAutoLocation() {
+        setState { it.copy(autoLocation = !it.autoLocation) }
     }
 
-    private fun restoreState(): WeatherMviState {
-        val state = savedStateHandle.get<WeatherMviState>(STATE_KEY)
-        return state ?: WeatherMviState.Weather()
+    private fun setPermissionsRationaleDialogVisibility(isVisible: Boolean) {
+        setState { it.copy(showPermissionsRationale = isVisible) }
     }
 
-    private fun validateLatLong(lat: String, long: String): Boolean {
-        val latitude = lat.toDoubleOrNull()
-        val longitude = long.toDoubleOrNull()
-        return latitude != null && longitude != null &&
-                latitude in -90.0..90.0 && longitude in -180.0..180.0
+    @OptIn(FlowPreview::class)
+    private suspend fun saveStateCollector() {
+        state
+            .debounce(500)
+            .collectLatest { state ->
+                savedStateHandle[STATE_KEY] = state
+            }
     }
 }

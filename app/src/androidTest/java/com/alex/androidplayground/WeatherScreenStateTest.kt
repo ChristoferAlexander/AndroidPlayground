@@ -15,14 +15,9 @@ import com.alex.androidplayground.mainScreen.MainActivity
 import com.alex.androidplayground.weatherScreen.data.source.remote.WeatherApi
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -50,14 +45,7 @@ class WeatherScreenStateTest {
     @Before
     fun setup() {
         hiltRule.inject()
-        Dispatchers.setMain(UnconfinedTestDispatcher())
     }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
-
 
     private fun navigateToWeatherScreen() {
         composeTestRule.onNodeWithContentDescription("Menu toggle icon").performClick()
@@ -112,7 +100,7 @@ class WeatherScreenStateTest {
         composeTestRule.onNodeWithTag("Latitude_TextField").assertIsNotEnabled()
         composeTestRule.onNodeWithTag("Longitude_TextField").assertIsNotEnabled()
         composeTestRule.onNodeWithTag("FetchWeather_Button").assertIsNotEnabled()
-        // TODO fix mock emission
+        // TODO fix mock emission by probably using StandardTestDispatcher instead of UnconfinedTestDispatcher
         advanceTimeBy(10000)
         composeTestRule.onNodeWithTag("CurrentWeather_Container").assertExists()
         composeTestRule.onNodeWithTag("WeeklyForecast_Container").assertExists()

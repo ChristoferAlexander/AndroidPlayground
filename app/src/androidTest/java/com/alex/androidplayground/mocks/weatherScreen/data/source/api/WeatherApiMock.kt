@@ -2,7 +2,7 @@ package com.alex.androidplayground.mocks.weatherScreen.data.source.api
 
 import com.alex.androidplayground.weatherScreen.data.source.remote.WeatherApi
 import com.alex.androidplayground.weatherScreen.domain.model.CurrentWeather
-import com.alex.androidplayground.weatherScreen.data.source.remote.model.WeatherResponse
+import com.alex.androidplayground.weatherScreen.data.source.remote.WeatherResponse
 import com.alex.androidplayground.weatherScreen.domain.model.WeaklyForecast
 import retrofit2.Response
 

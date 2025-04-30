@@ -21,7 +21,7 @@ import com.alex.androidplayground.core.ui.ObserveFlowWithLifecycle
 import com.alex.androidplayground.core.ui.openAppSettings
 import com.alex.androidplayground.core.ui.rememberPermissionsResultLauncher
 import com.alex.androidplayground.core.utils.permissions.checkPermissions
-import com.alex.androidplayground.foregroundServiceScreen.domain.services.LocationForegroundService
+import com.alex.androidplayground.foregroundServiceScreen.service.LocationForegroundService
 import com.alex.androidplayground.foregroundServiceScreen.ui.state.ForegroundServiceScreenAction
 import com.alex.androidplayground.foregroundServiceScreen.ui.state.ForegroundServiceScreenEvent
 import com.alex.androidplayground.foregroundServiceScreen.ui.state.ForegroundServiceScreenState

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
@@ -60,6 +62,7 @@ import com.alex.androidplayground.weatherScreen.ui.WeatherScreen
 import com.alex.androidplayground.weatherScreen.ui.state.WeatherViewModel
 import com.alex.androidplayground.workManagerScreen.ui.WorkManagerScreen
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
@@ -123,26 +126,13 @@ fun MainLayout(navDrawerItems: PersistentList<NavDrawerItem>) {
     ) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = if (isBreweryDetailsScreen.value) stringResource(R.string.brewery_details) else navDrawerItems[selectedItemIndex.intValue].text,
-                            modifier = Modifier.testTag("TopAppBarTitle")
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                if (isBreweryDetailsScreen.value) navController.popBackStack()
-                                else scope.launch { drawerState.open() }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = if (isBreweryDetailsScreen.value) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
-                                contentDescription = if (isBreweryDetailsScreen.value) "Back" else "Menu toggle icon"
-                            )
-                        }
-                    }
+                TopBar(
+                    isBreweryDetailsScreen = isBreweryDetailsScreen.value,
+                    selectedItemIndex = selectedItemIndex.intValue,
+                    navDrawerItems = navDrawerItems,
+                    drawerState = drawerState,
+                    navController = navController,
+                    scope = scope
                 )
             }
         ) { paddingValues ->
@@ -166,27 +156,60 @@ fun MainLayout(navDrawerItems: PersistentList<NavDrawerItem>) {
                     val viewModel = hiltViewModel<WeatherViewModel>()
                     WeatherScreen(viewModel)
                 }
-
                 navigation<BreweriesNestedNavDest>(startDestination = BreweriesListDest) {
                     composable<BreweriesListDest> {
-                        val parentEntry = remember(it) {
-                            navController.getBackStackEntry<BreweriesNestedNavDest>()
-                        }
+                        val parentEntry = remember(it) { navController.getBackStackEntry<BreweriesNestedNavDest>() }
                         val viewModel = hiltViewModel<BreweryViewModel>(parentEntry)
                         BreweryScreen(viewModel) { navController.navigate(BreweryDetailsDest(it)) }
                     }
                     composable<BreweryDetailsDest> {
                         val dest = it.toRoute<BreweryDetailsDest>()
+                        val parentEntry = remember(it) { navController.getBackStackEntry<BreweriesNestedNavDest>() }
                         val viewModel = hiltViewModel<BreweryDetailsViewModel, BreweryDetailsViewModel.Factory>(
+                            parentEntry,
                             creationCallback = { factory: BreweryDetailsViewModel.Factory ->
                                 factory.create(breweryId = dest.breweryId)
-                            })
+                            }
+                        )
                         BreweryDetailsScreen(viewModel)
                     }
                 }
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TopBar(
+    isBreweryDetailsScreen: Boolean,
+    selectedItemIndex: Int,
+    navDrawerItems: PersistentList<NavDrawerItem>,
+    drawerState: DrawerState,
+    navController: NavHostController,
+    scope: CoroutineScope
+) {
+    TopAppBar(
+        title = {
+            Text(
+                text = if (isBreweryDetailsScreen) stringResource(R.string.brewery_details) else navDrawerItems[selectedItemIndex].text,
+                modifier = Modifier.testTag("TopAppBarTitle")
+            )
+        },
+        navigationIcon = {
+            IconButton(
+                onClick = {
+                    if (isBreweryDetailsScreen) navController.popBackStack()
+                    else scope.launch { drawerState.open() }
+                }
+            ) {
+                Icon(
+                    imageVector = if (isBreweryDetailsScreen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
+                    contentDescription = if (isBreweryDetailsScreen) "Back" else "Menu toggle icon"
+                )
+            }
+        }
+    )
 }
 
 @Preview

@@ -1,6 +1,5 @@
 package com.alex.androidplayground.weatherScreen.data.source.remote
 
-import com.alex.androidplayground.weatherScreen.data.source.remote.model.WeatherResponse
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query

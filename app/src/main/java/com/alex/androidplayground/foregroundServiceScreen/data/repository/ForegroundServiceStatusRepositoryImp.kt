@@ -22,6 +22,7 @@ class ForegroundServiceStatusRepositoryImp @Inject constructor(
     @ApplicationContext context: Context,
     private val dispatcherProvider: DispatcherProvider
 ) : ForegroundServiceStatusRepository {
+
     private val dataStore = PreferenceDataStoreFactory.create(
         produceFile = { context.preferencesDataStoreFile("foreground_service_prefs") }
     )

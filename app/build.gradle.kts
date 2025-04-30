@@ -48,6 +48,7 @@ android {
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
     }
 
     packaging {
@@ -71,7 +72,9 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.androidx.datastore.preferences)
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
     testImplementation(libs.mockk)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -80,8 +83,8 @@ dependencies {
     androidTestImplementation(libs.androidx.runner)
     androidTestImplementation(libs.androidx.rules)
     androidTestImplementation(libs.mockk.android)
-    debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    debugImplementation(libs.androidx.ui.tooling)
     // Material 3
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material)
@@ -94,8 +97,8 @@ dependencies {
     testImplementation(libs.androidx.paging.common)
     implementation(libs.androidx.paging.compose)
     // Hilt
-    ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     testImplementation(libs.dagger.hilt.android.testing)
     kspTest(libs.hilt.android.compiler)

@@ -20,29 +20,24 @@ class BreweryRemoteMediator(
     private val dao = database.breweryDao()
     private val remoteKeysDao = database.breweryRemoteKeysDao()
 
-    override suspend fun load(
-        loadType: LoadType, state: PagingState<Int, BreweryEntity>
-    ): MediatorResult {
+    override suspend fun load(loadType: LoadType, state: PagingState<Int, BreweryEntity>): MediatorResult {
         return try {
             val currentPage = when (loadType) {
                 LoadType.REFRESH -> {
-                    val remoteKey = getRemoteKeyClosestToCurrentPosition(state)
+                    val remoteKey =
+                        getRemoteKeyClosestToCurrentPosition(state)
                     remoteKey?.nextPage?.minus(1) ?: 1
                 }
 
                 LoadType.PREPEND -> {
                     val remoteKeys = getRemoteKeyForFirstItem(state)
-                    val prevPage = remoteKeys?.prevPage ?: return MediatorResult.Success(
-                        endOfPaginationReached = remoteKeys != null
-                    )
+                    val prevPage = remoteKeys?.prevPage ?: return MediatorResult.Success(endOfPaginationReached = remoteKeys != null)
                     prevPage
                 }
 
                 LoadType.APPEND -> {
                     val remoteKeys = getRemoteKeyForLastItem(state)
-                    val nextPage = remoteKeys?.nextPage ?: return MediatorResult.Success(
-                        endOfPaginationReached = remoteKeys != null
-                    )
+                    val nextPage = remoteKeys?.nextPage ?: return MediatorResult.Success(endOfPaginationReached = remoteKeys != null)
                     nextPage
                 }
             }
@@ -61,7 +56,9 @@ class BreweryRemoteMediator(
                 }
                 val keys = response.map { brewery ->
                     BreweryEntityRemoteKey(
-                        id = brewery.id, prevPage = prevPage, nextPage = nextPage
+                        id = brewery.id,
+                        prevPage = prevPage,
+                        nextPage = nextPage
                     )
                 }
                 remoteKeysDao.add(remoteKeys = keys)

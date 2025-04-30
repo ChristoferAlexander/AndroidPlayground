@@ -1,4 +1,4 @@
-package com.alex.androidplayground.foregroundServiceScreen.domain.services
+package com.alex.androidplayground.foregroundServiceScreen.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -27,8 +27,10 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalAtomicApi::class)
 @AndroidEntryPoint
 class LocationForegroundService : Service() {
 
@@ -40,11 +42,11 @@ class LocationForegroundService : Service() {
 
     private var scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    private var isRunning = AtomicBoolean(false)
+    private lateinit var currentLocation: StateFlow<Location?>
+
     private val channelId = "location_channel"
     private val notificationId = 1
-    private var isRunning = false
-
-    private lateinit var currentLocation: StateFlow<Location?>
 
     override fun onCreate() {
         super.onCreate()
@@ -66,15 +68,16 @@ class LocationForegroundService : Service() {
     }
 
     private fun startLocationTracking() {
-        if (isRunning) return
-        isRunning = true
-        createNotificationChannel()
-        scope.launch { statusRepository.setRunning(true) }
+        if (isRunning.load()) return
         scope.launch {
+            createNotificationChannel()
             currentLocation.collect { location ->
                 val notification = createNotification(location)
-                startForeground(notificationId, notification)
-                // Update existing notification with new location
+                if (!isRunning.load()) {
+                    startForeground(notificationId, notification)
+                    statusRepository.setRunning(true)
+                    isRunning.store(true)
+                }
                 getSystemService(NotificationManager::class.java)
                     .notify(notificationId, notification)
             }
@@ -108,11 +111,8 @@ class LocationForegroundService : Service() {
     }
 
     override fun onDestroy() {
-        scope.launch(NonCancellable) {
-            println("Set running to false")
-            statusRepository.setRunning(false)
-        }
-        isRunning = false
+        scope.launch(NonCancellable) { statusRepository.setRunning(false) }
+        isRunning.store(false)
         scope.cancel()
         super.onDestroy()
     }

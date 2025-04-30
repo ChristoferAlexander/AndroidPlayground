@@ -27,6 +27,7 @@ pagingCommon = "3.3.6"
 retrofit = "2.11.0"
 playServicesLocation = "21.3.0"
 ksp = "2.1.20-1.0.31"
+robolectric = "4.14.1"
 roomRuntime = "2.7.0"
 runner = "1.6.2"
 rules = "1.6.1"
@@ -79,6 +80,7 @@ mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 
 [plugins]
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlinxSerialization" }

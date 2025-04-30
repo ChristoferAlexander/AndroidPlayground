@@ -1,4 +1,4 @@
-package com.alex.androidplayground.weatherScreen.data.source.remote.model
+package com.alex.androidplayground.weatherScreen.data.source.remote
 
 import com.alex.androidplayground.weatherScreen.domain.model.CurrentWeather
 import com.alex.androidplayground.weatherScreen.domain.model.WeaklyForecast

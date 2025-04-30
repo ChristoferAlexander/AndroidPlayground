@@ -32,7 +32,7 @@
             </intent-filter>
         </activity>
         <service
-            android:name=".foregroundServiceScreen.domain.services.LocationForegroundService"
+            android:name=".foregroundServiceScreen.service.LocationForegroundService"
             android:exported="false"
             android:foregroundServiceType="location" />
     </application>

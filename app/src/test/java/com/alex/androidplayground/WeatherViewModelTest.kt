@@ -7,7 +7,7 @@ import com.alex.androidplayground.core.model.result.error.DataError
 import com.alex.androidplayground.core.model.result.error.LocationError
 import com.alex.androidplayground.core.utils.location.LocationService
 import com.alex.androidplayground.mocks.core.utils.coroutines.TestDispatchersProvider
-import com.alex.androidplayground.weatherScreen.data.source.remote.model.WeatherResponse
+import com.alex.androidplayground.weatherScreen.data.source.remote.WeatherResponse
 import com.alex.androidplayground.weatherScreen.domain.model.CurrentWeather
 import com.alex.androidplayground.weatherScreen.domain.model.WeaklyForecast
 import com.alex.androidplayground.weatherScreen.domain.repository.WeatherRepository
